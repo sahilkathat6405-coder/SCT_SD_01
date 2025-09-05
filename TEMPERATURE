@@ -1,0 +1,103 @@
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <GLFW/glfw3.h> // Will drag system OpenGL headers
+
+float convertTemperature(float value, const char* from, const char* to) {
+    float celsius = 0.0f;
+
+    // Convert from input to Celsius
+    if (strcmp(from, "Celsius") == 0)
+        celsius = value;
+    else if (strcmp(from, "Fahrenheit") == 0)
+        celsius = (value - 32.0f) * 5.0f / 9.0f;
+    else if (strcmp(from, "Kelvin") == 0)
+        celsius = value - 273.15f;
+
+    // Convert from Celsius to output
+    if (strcmp(to, "Celsius") == 0)
+        return celsius;
+    else if (strcmp(to, "Fahrenheit") == 0)
+        return (celsius * 9.0f / 5.0f) + 32.0f;
+    else if (strcmp(to, "Kelvin") == 0)
+        return celsius + 273.15f;
+
+    return 0.0f;
+}
+
+int main() {
+    // Setup window
+    if (!glfwInit())
+        return 1;
+
+    const char* glsl_version = "#version 130";
+    GLFWwindow* window = glfwCreateWindow(600, 300, "Temperature Converter", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); // Enable vsync
+
+    // Setup Dear ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    // Dark theme
+    ImGui::StyleColorsDark();
+
+    // Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    // State variables
+    float inputValue = 0.0f;
+    float outputValue = 0.0f;
+    const char* units[] = { "Celsius", "Fahrenheit", "Kelvin" };
+    int fromUnit = 0;
+    int toUnit = 1;
+
+    // Main loop
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
+        // Start frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Create window
+        ImGui::Begin("🌡️ Temperature Converter");
+
+        ImGui::InputFloat("Input Temperature", &inputValue);
+
+        ImGui::Combo("From", &fromUnit, units, IM_ARRAYSIZE(units));
+        ImGui::Combo("To", &toUnit, units, IM_ARRAYSIZE(units));
+
+        if (ImGui::Button("Convert")) {
+            outputValue = convertTemperature(inputValue, units[fromUnit], units[toUnit]);
+        }
+
+        ImGui::Text("Output: %.2f %s", outputValue, units[toUnit]);
+
+        ImGui::End();
+
+        // Render
+        ImGui::Render();
+        int display_w, display_h;
+        glfwMakeContextCurrent(window);
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Dark background
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(window);
+    }
+
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+
+    return 0;
+}
